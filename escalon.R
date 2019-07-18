@@ -787,12 +787,12 @@ get.AT.decimal.templates.parameters <- function(rounding.digits = 6)
     K = K.decimal,
     ARI = ARI.decimal
   )
-  print(data.frame(
-    T = T.decimal,
-    D = D.decimal,
-    K = K.decimal,
-    ARI = ARI.decimal
-  ))
+  # print(data.frame(
+  #   T = T.decimal,
+  #   D = D.decimal,
+  #   K = K.decimal,
+  #   ARI = ARI.decimal
+  # ))
 }
 
 get.normalised.dari.templates <- function(
@@ -965,22 +965,22 @@ run<-function()
   w<-0.2
   filbut<- butter(2,w)
   inverseStep<-filtfilt(filbut, inverseStep)
-  inverseStep<-inverseStep[20:200]
+  inverseStep<-inverseStep[20:150]
   print("lectura archivo")
   filepath <- ("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/Univariado/NARX_grilla1/")
   setwd(filepath)
-  subjects = c( #"P046-VE_",
-                # 'ANGL-VE_','PAAR-VE_',
-                # 'P040-VE_',
+  subjects = c( "P046-VE_"#,
+                #'ANGL-VE_'#,'PAAR-VE_',
+                #'P040-VE_'#,
                 # 'P041-VE_','P061-VE_',
-                # 'P044-VE_',
-                # 'P060-VE_',
+                 #'P044-VE_',
+                 #'P060-VE_'#,
                 # 'P045-VE_','P052-VE_',
                 # 'P048-VE_','P062-VE_',
                 # 'P049-VE_',
-                'P051-VE_'#,
+                #'P051-VE_'#,
                 # 'P050-VE_','P057-VE_',
-                # 'P056-VE_','P066-VE_',
+                 #'P056-VE_'#,'P066-VE_',
                 # 'P063-VE_',
                 # 'P064-VE_',
                 #'P067-VE_'
@@ -1057,7 +1057,7 @@ run<-function()
       tiempoManiobra<- 0
       j<-0
       for (variable in stepTime) {
-        tiempoManiobra[j]<- variable-6.2
+        tiempoManiobra[j]<- variable-4.2
         j<-j+1
       }
       
@@ -1130,12 +1130,14 @@ run<-function()
       # i <- seq(11, 91, 20)
       # temps <- ari[["relevant.template.segments"]][i]
       ibest <- ari[["ranking"]][1]
-      best <- ari[["relevant.template.segments"]][[ibest]]
+      #best <- ari[["relevant.template.segments"]][[ibest]]
+      #print(best)
+      ari.value<-(ibest/10)-0.1
       
       #que solo me grafique cuando encuentre un ks>0
-      if(delta.tau>=3 && ks>=cbfvmin){
+      #if(delta.tau>=3 && ks>=cbfvmin){
       
-      plot(tiempoManiobra,pamnormalizado,type="l", col="red",xlab = "Tiempo (seg)", ylab = "VFSC Estimado Normalizado (cm/seg)", main = "Respuesta al escalón inverso de presión")
+      plot(tiempoManiobra,pamnormalizado,type="l", col="red",xlab = "Tiempo (seg)", ylab = "VFSC Estimado Normalizado (cm/seg)", main = paste("Respuesta al escalón inverso de presión ", substring(namesubject, 1, 4)))
       lines(tiempoManiobra,respuestanormalizada, col = "blue")
     
       legend("topright", 
@@ -1146,13 +1148,13 @@ run<-function()
              lty=c(1,1),
              inset = 0.01)
       legend("bottomright", 
-             c(paste("corr=",round(mejoresModelos[i,7],2)),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",mfari)), 
+             c(paste("corr=",round(mejoresModelos[i,7],2)),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",round(mfari,2)), paste("ARI=",ari.value)), 
              title = "Parametros mfARI")
       
       #print(ari)
-      print(best)
+      print(ibest)
       readline(prompt="Press [enter] to continue")
-      }
+      #}
     }
   }
 }
