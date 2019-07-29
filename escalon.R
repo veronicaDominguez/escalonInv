@@ -42,7 +42,22 @@ normalise.signal <- function(
   signal.min.value
 )
 {
-  (signal - signal.min.value) / abs(signal.baseline.value - signal.min.value)
+  signal<-(signal - signal.min.value) / abs(signal.baseline.value - signal.min.value)
+  
+  if (signal.baseline.value!=0.8){
+    dif<-signal.baseline.value-0.8
+    if (dif>0){
+      signal<-signal-dif
+      signal.baseline.value<-signal.baseline.value-dif
+      signal.min.value<-signal.min.value-dif
+    }
+    else if(dif<0){
+      signal<-signal+dif
+      signal.baseline.value<-signal.baseline.value+dif
+      signal.min.value<-signal.min.value+dif
+    }
+  }
+  return(signal)
 }
 
 normalize <- function(x) {
@@ -270,7 +285,6 @@ get.MSE.matrix <- function(sim, obs, ...)
                 "[", paste(dim(obs), collapse = " "), "]", ")"))
   
   mse <- colMeans((sim - obs)^2, ...)
-  
   return(mse)
 }
 
@@ -449,13 +463,13 @@ normalise.CBFV.signal <- function(
     ans[["min.CBFV.type"]] <- "local minimum"
   
   # Normalises the signal
-  # ans[["normalised.CBFV.signal"]] <- normalise.signal(
-  #   signal = CBFV.signal,
-  #   signal.baseline.value = ans[["CBFV.baseline.value"]],
-  #   signal.min.value = ans[["min.CBFV.value"]]
-  # )
-  ans[["normalised.CBFV.signal"]] <- normalize(CBFV.signal)
-  
+  ans[["normalised.CBFV.signal"]] <- normalise.signal(
+    signal = CBFV.signal,
+    signal.baseline.value = ans[["CBFV.baseline.value"]],
+    signal.min.value = ans[["min.CBFV.value"]]
+  )
+  #ans[["normalised.CBFV.signal"]] <- normalize(CBFV.signal)
+  #plot(ans[["normalised.CBFV.signal"]])
   invisible(ans)
 }
 
@@ -845,8 +859,20 @@ get.normalised.dari.templates <- function(
   
   names(normalised.templates) <- 
     sapply(r, function(i) sprintf("%.1f", at.params[i, 4]))
-  
   normalised.templates
+  
+}
+trans.segment.signal<-function(signal){
+  if (signal[1]!=0.8){
+    dif<-signal[1]-0.8
+    if (dif>0){
+      signal<-signal-dif
+    }
+    else if(dif<0){
+      signal<-signal+dif
+    }
+  }
+  return(signal)
 }
 
 
@@ -919,17 +945,25 @@ get.best.templates <- function(
   # Gets relevant segments
   .tmp.fun <- function(s) s[ans[["relevant.samples"]]]
   ans[["relevant.signal.segment"]] <- .tmp.fun(ans[["signal"]])
+  plot(ans[["relevant.signal.segment"]])
+  ans[["relevant.signal.segment"]]<-trans.segment.signal(ans[["relevant.signal.segment"]])
+  plot(ans[["relevant.signal.segment"]])
+  
+  
   ans[["relevant.template.segments"]] <-
     lapply(ans[["templates"]], .tmp.fun)
   
   # Gets fit values
+  #print("antes de la comparacion")
   .tmp.fun <- function(t) 
     comparison.function(ans[["relevant.signal.segment"]], t, ...)
+  
   ans[["fit.values"]] <-
     sapply(ans[["relevant.template.segments"]], .tmp.fun)
   
   # Orders templates and determines the best one
   ans[["ranking"]] <- order(ans[["fit.values"]])
+  #print("dsp de la comparacion")
   
   # Deletes details if corresponds
   if(!keep.details)
@@ -967,23 +1001,13 @@ run<-function()
   inverseStep<-filtfilt(filbut, inverseStep)
   inverseStep<-inverseStep[20:150]
   print("lectura archivo")
-  filepath <- ("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/Univariado/NARX_grilla1/")
+  #filepath <- ("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/Univariado/NARX_grilla1/")
+  filepath<-("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/inglaterra/SS_MCAR/")
   setwd(filepath)
-  subjects = c( "P046-VE_"#,
-                #'ANGL-VE_'#,'PAAR-VE_',
-                #'P040-VE_'#,
-                # 'P041-VE_','P061-VE_',
-                 #'P044-VE_',
-                 #'P060-VE_'#,
-                # 'P045-VE_','P052-VE_',
-                # 'P048-VE_','P062-VE_',
-                # 'P049-VE_',
-                #'P051-VE_'#,
-                # 'P050-VE_','P057-VE_',
-                 #'P056-VE_'#,'P066-VE_',
-                # 'P063-VE_',
-                # 'P064-VE_',
-                #'P067-VE_'
+  subjects = c("DANN-VE_"
+               #"DENM-VE_","DEVM-VE_",
+               #"DEVW-VE_","EMMK-VE_","EVED-VE_","EXTL-VE_","FITM-VE_","FOTM-VE_","FRAC-VE_",
+               #"FRAL-VE_", "FROA-VE_","GERL-VE_","GREC-VE_","GURM-VE_","HARR-VE_","HOBP-VE_","JAMJ-VE_","KEIR-VE_","KERR-VE_"
               )
   
   for (subject in subjects){
@@ -1005,7 +1029,8 @@ run<-function()
     
     ### evaluacion de cada modelo
     for (i in 1:length(mejoresModelos[,1])){
-      filepath<-("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Data")
+      #filepath<-("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Data")
+      filepath<-("C:/Users/Usuario/Google Drive/USACH/TESIS/muestras Inglaterra/PD Data Leicester/HC .PAR/formato svm/")
       setwd(filepath)
       if(fold[i]==1){
         namearch <- paste (namesubject, "02izq", sep = "_", collapse = NULL)
@@ -1124,19 +1149,22 @@ run<-function()
       ari<-get.best.templates(
         time.instants = time.instants,
         signal = cbfv.signal,
+        #signal=stepResponse[1:largo.mvre],
         templates = normalised.cbfv.templates,
         keep.details = TRUE
       )
       # i <- seq(11, 91, 20)
       # temps <- ari[["relevant.template.segments"]][i]
       ibest <- ari[["ranking"]][1]
-      #best <- ari[["relevant.template.segments"]][[ibest]]
-      #print(best)
+      best <- ari[["relevant.template.segments"]][[ibest]]
+      print(ari[["ranking"]])
+      plot(best)
       ari.value<-(ibest/10)-0.1
+      corr<- round(mejoresModelos[i,7],2)
       
       #que solo me grafique cuando encuentre un ks>0
       #if(delta.tau>=3 && ks>=cbfvmin){
-      
+      if(delta.tau>=1.6 && ks>=0.2 && mfari>3){
       plot(tiempoManiobra,pamnormalizado,type="l", col="red",xlab = "Tiempo (seg)", ylab = "VFSC Estimado Normalizado (cm/seg)", main = paste("Respuesta al escalón inverso de presión ", substring(namesubject, 1, 4)))
       lines(tiempoManiobra,respuestanormalizada, col = "blue")
     
@@ -1148,13 +1176,13 @@ run<-function()
              lty=c(1,1),
              inset = 0.01)
       legend("bottomright", 
-             c(paste("corr=",round(mejoresModelos[i,7],2)),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",round(mfari,2)), paste("ARI=",ari.value)), 
+             c(paste("corr=",corr),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",round(mfari,2)), paste("ARI=",ari.value)), 
              title = "Parametros mfARI")
       
       #print(ari)
-      print(ibest)
+      #print(ibest)
       readline(prompt="Press [enter] to continue")
-      #}
+      }
     }
   }
 }
