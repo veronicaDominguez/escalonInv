@@ -43,21 +43,38 @@ normalise.signal <- function(
 )
 {
   signal<-(signal - signal.min.value) / abs(signal.baseline.value - signal.min.value)
-  
+  # 
+  # if (signal.baseline.value!=0.8){
+  #   dif<-signal.baseline.value-0.8
+  #   if (dif>0){
+  #     signal<-signal-dif
+  #     signal.baseline.value<-signal.baseline.value-dif
+  #     signal.min.value<-signal.min.value-dif
+  #   }
+  #   else if(dif<0){
+  #     signal<-signal+dif
+  #     signal.baseline.value<-signal.baseline.value+dif
+  #     signal.min.value<-signal.min.value+dif
+  #   }
+  # }
+  return(signal)
+}
+
+ajustar.plot <- function(signal)
+{
+  signal.baseline.value=signal[1]
   if (signal.baseline.value!=0.8){
     dif<-signal.baseline.value-0.8
     if (dif>0){
-      signal<-signal-dif
-      signal.baseline.value<-signal.baseline.value-dif
-      signal.min.value<-signal.min.value-dif
+      signal<-signal-abs(dif)
+      return(signal)
     }
     else if(dif<0){
-      signal<-signal+dif
-      signal.baseline.value<-signal.baseline.value+dif
-      signal.min.value<-signal.min.value+dif
+      signal<-signal+abs(dif)
+      return(signal)
     }
   }
-  return(signal)
+  #return(signal)
 }
 
 normalize <- function(x) {
@@ -463,12 +480,13 @@ normalise.CBFV.signal <- function(
     ans[["min.CBFV.type"]] <- "local minimum"
   
   # Normalises the signal
-  ans[["normalised.CBFV.signal"]] <- normalise.signal(
-    signal = CBFV.signal,
-    signal.baseline.value = ans[["CBFV.baseline.value"]],
-    signal.min.value = ans[["min.CBFV.value"]]
-  )
+  # ans[["normalised.CBFV.signal"]] <- normalise.signal(
+  #   signal = CBFV.signal,
+  #   signal.baseline.value = ans[["CBFV.baseline.value"]],
+  #   signal.min.value = ans[["min.CBFV.value"]]
+  # )
   #ans[["normalised.CBFV.signal"]] <- normalize(CBFV.signal)
+  ans[["normalised.CBFV.signal"]] <- CBFV.signal
   #plot(ans[["normalised.CBFV.signal"]])
   invisible(ans)
 }
@@ -690,6 +708,7 @@ get.mfARI.parameters <- function(
     ans[["steady.CBFV.line"]] <- dans[["steady.CBFV.line"]]
     ans[["steady.CBFV.duration"]] <- dans[["steady.CBFV.duration"]]
     
+    ans[["tau"]] <- dans[["min.CBFV.time.instant"]] + (dans[["Delta.tau"]]*0.2)
     ans[["Delta.tau"]] <- dans[["Delta.tau"]]
     ans[["Ks"]] <- dans[["Ks"]]
     ans[["Phi"]] <- dans[["Phi"]]
@@ -946,8 +965,8 @@ get.best.templates <- function(
   .tmp.fun <- function(s) s[ans[["relevant.samples"]]]
   ans[["relevant.signal.segment"]] <- .tmp.fun(ans[["signal"]])
   plot(ans[["relevant.signal.segment"]])
-  ans[["relevant.signal.segment"]]<-trans.segment.signal(ans[["relevant.signal.segment"]])
-  plot(ans[["relevant.signal.segment"]])
+  # ans[["relevant.signal.segment"]]<-trans.segment.signal(ans[["relevant.signal.segment"]])
+  # plot(ans[["relevant.signal.segment"]])
   
   
   ans[["relevant.template.segments"]] <-
@@ -993,13 +1012,16 @@ run<-function()
   # write.table(y, file = nombrearch, sep = "\t", row.names= FALSE)
   
   ## leer escalon
-  filename <- paste ("Esc_neg", "txt", sep = ".", collapse = NULL)
+  filename <- paste ("Escalon_neg", "txt", sep = ".", collapse = NULL)
   escalon<- read.table(filename, header=TRUE)
-  inverseStep<-escalon[1:350,]
-  w<-0.2
-  filbut<- butter(2,w)
-  inverseStep<-filtfilt(filbut, inverseStep)
-  inverseStep<-inverseStep[20:150]
+  inverseStep<-escalon[1:150,]
+  # w<-0.2
+  # filbut<- butter(2,w)
+  # inverseStep<-filtfilt(filbut, inverseStep)
+  # inverseStep<-inverseStep[20:150]
+  #norm.inverseStep<-normalize(inverseStep)
+  #write.table(norm.inverseStep, file = "Escalon_neg.txt", sep = "\t", row.names= FALSE)
+  
   print("lectura archivo")
   #filepath <- ("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/Univariado/NARX_grilla1/")
   filepath<-("C:/Users/Usuario/Google Drive/USACH/TESIS/programas/cluster_VE5mins_NARX_p1/cluster/Results/inglaterra/SS_MCAR/")
@@ -1052,7 +1074,7 @@ run<-function()
       
       #modelo
       PAMn<-normalize(PAMn)
-      VFSCn<-normalize(VFSCn)
+      #VFSCn<-normalize(VFSCn)
       data <- data.frame(PAMn,VFSCn)
       lag<-list(PAMn = mejoresModelos[i,1],VFSCn = 0)
       signal.train <- retardos_multi(data, lag)
@@ -1077,12 +1099,13 @@ run<-function()
       stepResponse <- predict(mejorModelo, x )
       
       pamnormalizado<-normalize(retDatos$PAMn)
-      respuestanormalizada<-normalize(stepResponse)
+      #respuestanormalizada<-normalize(stepResponse)
+      respuestanormalizada<-stepResponse
       
       tiempoManiobra<- 0
       j<-0
       for (variable in stepTime) {
-        tiempoManiobra[j]<- variable-4.2
+        tiempoManiobra[j]<- variable-3.6
         j<-j+1
       }
       
@@ -1100,11 +1123,11 @@ run<-function()
       #grafico del escalon y la respuesta
       largo.mvre<-length(tiempoManiobra)
       pamnormalizado<-pamnormalizado[1:largo.mvre]
-      respuestanormalizada<-respuestanormalizada[1:largo.mvre]
+      respuestanormalizada<-ajustar.plot(respuestanormalizada[1:largo.mvre])
       
       # plot(tiempoManiobra,pamnormalizado,type="l", col="red")
       # lines(tiempoManiobra,respuestanormalizada, col = "blue")
-      
+
       #calculo de mfari y sus parametros
       time.instants<-tiempoManiobra
       abp.signal<-pamnormalizado
@@ -1123,13 +1146,16 @@ run<-function()
       
       mfari<- get.mfARI(
         Ks = mfariParams[["Ks"]],
-        Delta.tau = mfariParams[["Delta.tau"]],
+        Delta.tau = mfariParams[["Delta.tau"]]*0.2,
         Phi = mfariParams[["Phi"]]
       )
       cbfvmin<-mfariParams[["min.CBFV.value"]]
       ks<- mfariParams[["Ks"]]
       delta.tau<-mfariParams[["Delta.tau"]]
       phi<- mfariParams[["Phi"]]
+      tau<-mfariParams[["tau"]]
+      
+      
       
       #calculo del ARI
       time.tol<-sampling.time/100
@@ -1148,8 +1174,8 @@ run<-function()
       
       ari<-get.best.templates(
         time.instants = time.instants,
-        signal = cbfv.signal,
-        #signal=stepResponse[1:largo.mvre],
+        #signal = cbfv.signal,
+        signal=normalize(stepResponse[1:largo.mvre]),
         templates = normalised.cbfv.templates,
         keep.details = TRUE
       )
@@ -1157,31 +1183,38 @@ run<-function()
       # temps <- ari[["relevant.template.segments"]][i]
       ibest <- ari[["ranking"]][1]
       best <- ari[["relevant.template.segments"]][[ibest]]
-      print(ari[["ranking"]])
+      #print(ari[["ranking"]])
       plot(best)
       ari.value<-(ibest/10)-0.1
       corr<- round(mejoresModelos[i,7],2)
       
       #que solo me grafique cuando encuentre un ks>0
-      #if(delta.tau>=3 && ks>=cbfvmin){
-      if(delta.tau>=1.6 && ks>=0.2 && mfari>3){
-      plot(tiempoManiobra,pamnormalizado,type="l", col="red",xlab = "Tiempo (seg)", ylab = "VFSC Estimado Normalizado (cm/seg)", main = paste("Respuesta al escalón inverso de presión ", substring(namesubject, 1, 4)))
-      lines(tiempoManiobra,respuestanormalizada, col = "blue")
-    
-      legend("topright", 
-             c("Escalon de presión", "respuesta al escalon"), 
-             title = "Autorregulacion", 
-             pch =1, 
-             col=c("red","blue"),
-             lty=c(1,1),
-             inset = 0.01)
-      legend("bottomright", 
-             c(paste("corr=",corr),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",round(mfari,2)), paste("ARI=",ari.value)), 
-             title = "Parametros mfARI")
-      
-      #print(ari)
-      #print(ibest)
-      readline(prompt="Press [enter] to continue")
+      if(tau>=3 && ks>=cbfvmin){
+      #if(tau>=2 && ks>=0.2 && mfari>3){
+        largo.signal<-largo.mvre-77
+        
+        namefile= paste(substring(namesubject, 1, 4),i,sep = "_", collapse = NULL)
+        namefile=paste(namefile,"png",sep = ".", collapse = NULL)
+        #png(filename=namefile)
+        
+        plot(tiempoManiobra[1:largo.signal],pamnormalizado[1:largo.signal],type="l", col="red",xlab = "Tiempo (seg)", ylab = "VFSC Estimado Normalizado (cm/seg)", main = paste("Respuesta al escalón inverso de presión ", substring(namesubject, 1, 4)))
+        axis(1, at = seq(-5, 15, by = 1))
+        VFSC.plot<- respuestanormalizada[1:largo.signal]
+        lines(tiempoManiobra[1:largo.signal],VFSC.plot, col = "blue")
+  
+        legend("topright", 
+               c("Escalon de presión", "respuesta al escalon"), 
+               title = "Autorregulacion", 
+               pch =1, 
+               col=c("red","blue"),
+               lty=c(1,1),
+               inset = 0.01)
+        legend("bottomright", 
+               c(paste("corr=",corr),paste("Ks=",ks),paste("Delta.tau=",delta.tau), paste("Phi=",phi),paste("mfARI=",round(mfari,2)), paste("ARI=",ari.value)), 
+               title = "Parametros mfARI")
+        
+        #dev.off()
+        readline(prompt="Press [enter] to continue")
       }
     }
   }
